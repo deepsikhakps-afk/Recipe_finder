@@ -1,0 +1,508 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ladle — Recipe Finder</title>
+<style>
+  :root{
+    --ink:#2b2420;
+    --paper:#faf6ee;
+    --paprika:#c1440e;
+    --sage:#5b6c4e;
+    --butter:#e8b923;
+    --line:#dcd3c0;
+    --card:#ffffff;
+    --muted:#7a7166;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:var(--paper);
+    color:var(--ink);
+    font-family:'Iowan Old Style','Georgia',serif;
+    -webkit-font-smoothing:antialiased;
+  }
+  @font-face{
+    font-family:'stack-mono';
+    src:local('Menlo');
+  }
+  .util{font-family:'Courier New',monospace;letter-spacing:.04em;}
+
+  header{
+    padding:56px 24px 32px;
+    text-align:center;
+    border-bottom:1px solid var(--line);
+    position:relative;
+    overflow:hidden;
+  }
+  header::before{
+    content:"";
+    position:absolute;
+    top:-60px; right:-60px;
+    width:220px;height:220px;
+    border-radius:50%;
+    background:radial-gradient(circle at 30% 30%, var(--butter), transparent 70%);
+    opacity:.35;
+  }
+  .brand{
+    font-size:2.6rem;
+    font-weight:700;
+    letter-spacing:-0.02em;
+    margin:0;
+  }
+  .brand span{color:var(--paprika);}
+  .tagline{
+    color:var(--muted);
+    font-size:0.95rem;
+    margin-top:6px;
+    font-style:italic;
+  }
+
+  .search-wrap{
+    max-width:620px;
+    margin:32px auto 0;
+    padding:0 24px;
+  }
+  .search-box{
+    display:flex;
+    border:2px solid var(--ink);
+    border-radius:4px;
+    overflow:hidden;
+    background:var(--card);
+  }
+  .search-box input{
+    flex:1;
+    border:none;
+    padding:14px 16px;
+    font-size:1rem;
+    font-family:inherit;
+    background:transparent;
+    outline:none;
+  }
+  .search-box button{
+    border:none;
+    background:var(--ink);
+    color:var(--paper);
+    padding:0 22px;
+    font-family:'Courier New',monospace;
+    text-transform:uppercase;
+    letter-spacing:.08em;
+    font-size:.8rem;
+    cursor:pointer;
+    transition:background .15s ease;
+  }
+  .search-box button:hover{background:var(--paprika);}
+
+  .filters{
+    display:flex;
+    gap:8px;
+    flex-wrap:wrap;
+    justify-content:center;
+    margin:16px 24px 0;
+  }
+  .chip{
+    font-family:'Courier New',monospace;
+    font-size:.72rem;
+    letter-spacing:.05em;
+    text-transform:uppercase;
+    padding:6px 12px;
+    border:1px solid var(--line);
+    border-radius:20px;
+    background:var(--card);
+    color:var(--muted);
+    cursor:pointer;
+    transition:all .15s ease;
+  }
+  .chip:hover, .chip.active{
+    border-color:var(--sage);
+    color:var(--sage);
+    background:#f0f3ec;
+  }
+
+  .surprise-row{
+    text-align:center;
+    margin:20px 0 0;
+  }
+  .surprise{
+    font-family:'Courier New',monospace;
+    font-size:.78rem;
+    letter-spacing:.05em;
+    text-transform:uppercase;
+    color:var(--paprika);
+    background:none;
+    border:none;
+    cursor:pointer;
+    border-bottom:1px dashed var(--paprika);
+    padding-bottom:2px;
+  }
+
+  main{
+    max-width:1080px;
+    margin:0 auto;
+    padding:36px 24px 80px;
+  }
+
+  .status{
+    text-align:center;
+    color:var(--muted);
+    font-family:'Courier New',monospace;
+    font-size:.85rem;
+    padding:40px 0;
+  }
+
+  .grid{
+    display:grid;
+    grid-template-columns:repeat(auto-fill,minmax(240px,1fr));
+    gap:22px;
+  }
+  .card{
+    background:var(--card);
+    border:1px solid var(--line);
+    border-radius:6px;
+    overflow:hidden;
+    cursor:pointer;
+    transition:transform .15s ease, box-shadow .15s ease;
+    position:relative;
+  }
+  .card:hover{
+    transform:translateY(-4px);
+    box-shadow:0 10px 24px rgba(43,36,32,.12);
+  }
+  .card img{
+    width:100%;
+    aspect-ratio:1/1;
+    object-fit:cover;
+    display:block;
+  }
+  .card-body{
+    padding:14px 16px 16px;
+  }
+  .card-eyebrow{
+    font-family:'Courier New',monospace;
+    font-size:.68rem;
+    letter-spacing:.06em;
+    text-transform:uppercase;
+    color:var(--sage);
+    margin-bottom:4px;
+  }
+  .card h3{
+    margin:0;
+    font-size:1.05rem;
+    line-height:1.3;
+  }
+  .fav-btn{
+    position:absolute;
+    top:10px; right:10px;
+    width:32px;height:32px;
+    border-radius:50%;
+    border:none;
+    background:rgba(250,246,238,.92);
+    font-size:1rem;
+    cursor:pointer;
+    display:flex;align-items:center;justify-content:center;
+  }
+  .fav-btn.active{color:var(--paprika);}
+
+  /* Detail overlay */
+  .overlay{
+    position:fixed; inset:0;
+    background:rgba(43,36,32,.55);
+    display:none;
+    align-items:flex-start;
+    justify-content:center;
+    padding:40px 16px;
+    overflow-y:auto;
+    z-index:50;
+  }
+  .overlay.open{display:flex;}
+  .detail{
+    background:var(--paper);
+    max-width:720px;
+    width:100%;
+    border-radius:8px;
+    overflow:hidden;
+    animation:rise .2s ease;
+  }
+  @keyframes rise{from{transform:translateY(16px);opacity:0;}to{transform:translateY(0);opacity:1;}}
+  .detail-hero{
+    position:relative;
+  }
+  .detail-hero img{
+    width:100%;
+    max-height:320px;
+    object-fit:cover;
+    display:block;
+  }
+  .close-btn{
+    position:absolute;
+    top:14px; right:14px;
+    width:36px;height:36px;
+    border-radius:50%;
+    border:none;
+    background:var(--ink);
+    color:var(--paper);
+    font-size:1.1rem;
+    cursor:pointer;
+  }
+  .detail-body{
+    padding:28px 30px 36px;
+  }
+  .detail-body .card-eyebrow{margin-bottom:8px;}
+  .detail-body h2{
+    margin:0 0 6px;
+    font-size:1.7rem;
+  }
+  .detail-meta{
+    display:flex;
+    gap:16px;
+    flex-wrap:wrap;
+    font-family:'Courier New',monospace;
+    font-size:.78rem;
+    color:var(--muted);
+    margin-bottom:20px;
+    text-transform:uppercase;
+    letter-spacing:.04em;
+  }
+  .detail h4{
+    font-size:.8rem;
+    text-transform:uppercase;
+    letter-spacing:.06em;
+    color:var(--sage);
+    margin:22px 0 10px;
+    border-bottom:1px solid var(--line);
+    padding-bottom:6px;
+  }
+  .ingredient-list{
+    list-style:none;
+    margin:0; padding:0;
+    columns:2;
+    column-gap:24px;
+  }
+  .ingredient-list li{
+    padding:4px 0;
+    font-size:.92rem;
+    break-inside:avoid;
+  }
+  .ingredient-list li::before{
+    content:"— ";
+    color:var(--paprika);
+  }
+  .instructions{
+    font-size:.96rem;
+    line-height:1.7;
+    white-space:pre-line;
+  }
+
+  .empty-note{
+    text-align:center;
+    color:var(--muted);
+    font-style:italic;
+    padding:60px 20px;
+  }
+
+  footer{
+    text-align:center;
+    padding:26px;
+    font-family:'Courier New',monospace;
+    font-size:.72rem;
+    color:var(--muted);
+    letter-spacing:.04em;
+    border-top:1px solid var(--line);
+  }
+
+  @media (max-width:480px){
+    .brand{font-size:2rem;}
+    .ingredient-list{columns:1;}
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1 class="brand">Ladle<span>.</span></h1>
+  <p class="tagline">find something worth cooking tonight</p>
+  <div class="search-wrap">
+    <div class="search-box">
+      <input id="searchInput" type="text" placeholder="Search a dish or ingredient — e.g. paneer, pasta, chicken curry" />
+      <button id="searchBtn" class="util">Search</button>
+    </div>
+  </div>
+  <div class="filters" id="filterRow">
+    <span class="chip" data-area="Indian">Indian</span>
+    <span class="chip" data-cat="Vegetarian">Vegetarian</span>
+    <span class="chip" data-cat="Dessert">Dessert</span>
+    <span class="chip" data-cat="Seafood">Seafood</span>
+    <span class="chip" data-cat="Breakfast">Breakfast</span>
+    <span class="chip" data-cat="Chicken">Chicken</span>
+    <span class="chip" data-cat="favorites">★ Favorites</span>
+  </div>
+  <div class="surprise-row">
+    <button class="surprise util" id="surpriseBtn">Surprise Me →</button>
+  </div>
+</header>
+
+<main>
+  <div id="status" class="status">Type a search above, pick a category, or hit "Surprise Me".</div>
+  <div id="grid" class="grid"></div>
+</main>
+
+<footer class="util">Recipe data via TheMealDB · Favorites saved on this device</footer>
+
+<div class="overlay" id="overlay">
+  <div class="detail" id="detailBox"></div>
+</div>
+
+<script>
+const API = 'https://www.themealdb.com/api/json/v1/1';
+const grid = document.getElementById('grid');
+const statusEl = document.getElementById('status');
+const overlay = document.getElementById('overlay');
+const detailBox = document.getElementById('detailBox');
+
+let favorites = JSON.parse(localStorage.getItem('ladle_favs') || '{}');
+
+function saveFavs(){ localStorage.setItem('ladle_favs', JSON.stringify(favorites)); }
+
+function setStatus(msg){
+  statusEl.style.display = 'block';
+  statusEl.textContent = msg;
+  grid.innerHTML = '';
+}
+
+function renderMeals(meals){
+  if(!meals || meals.length === 0){
+    setStatus('Nothing turned up. Try a different search.');
+    return;
+  }
+  statusEl.style.display = 'none';
+  grid.innerHTML = meals.map(m => `
+    <div class="card" data-id="${m.idMeal}">
+      <img src="${m.strMealThumb}/preview" alt="${m.strMeal}" loading="lazy" />
+      <button class="fav-btn ${favorites[m.idMeal] ? 'active' : ''}" data-fav="${m.idMeal}">★</button>
+      <div class="card-body">
+        <div class="card-eyebrow">${m.strCategory || m.strArea || 'Recipe'}</div>
+        <h3>${m.strMeal}</h3>
+      </div>
+    </div>
+  `).join('');
+}
+
+async function searchByName(q){
+  setStatus('Searching…');
+  const res = await fetch(`${API}/search.php?s=${encodeURIComponent(q)}`);
+  const data = await res.json();
+  renderMeals(data.meals);
+}
+
+async function filterByCategory(cat){
+  setStatus('Loading…');
+  const res = await fetch(`${API}/filter.php?c=${encodeURIComponent(cat)}`);
+  const data = await res.json();
+  renderMeals(data.meals);
+}
+
+async function filterByArea(area){
+  setStatus('Loading…');
+  const res = await fetch(`${API}/filter.php?a=${encodeURIComponent(area)}`);
+  const data = await res.json();
+  renderMeals(data.meals);
+}
+
+async function surpriseMe(){
+  setStatus('Shuffling the pantry…');
+  const res = await fetch(`${API}/random.php`);
+  const data = await res.json();
+  renderMeals(data.meals);
+}
+
+function showFavorites(){
+  const ids = Object.keys(favorites);
+  if(ids.length === 0){
+    setStatus('No favorites yet — tap the ★ on a recipe card to save one.');
+    return;
+  }
+  setStatus('Loading favorites…');
+  Promise.all(ids.map(id => fetch(`${API}/lookup.php?i=${id}`).then(r=>r.json())))
+    .then(results => renderMeals(results.map(r => r.meals[0])));
+}
+
+async function openDetail(id){
+  const res = await fetch(`${API}/lookup.php?i=${id}`);
+  const data = await res.json();
+  const m = data.meals[0];
+
+  let ingredients = [];
+  for(let i=1;i<=20;i++){
+    const ing = m[`strIngredient${i}`];
+    const measure = m[`strMeasure${i}`];
+    if(ing && ing.trim()){
+      ingredients.push(`${measure ? measure.trim() : ''} ${ing.trim()}`.trim());
+    }
+  }
+
+  detailBox.innerHTML = `
+    <div class="detail-hero">
+      <img src="${m.strMealThumb}" alt="${m.strMeal}" />
+      <button class="close-btn" id="closeBtn">✕</button>
+    </div>
+    <div class="detail-body">
+      <div class="card-eyebrow">${m.strCategory || ''} ${m.strArea ? '· ' + m.strArea : ''}</div>
+      <h2>${m.strMeal}</h2>
+      <div class="detail-meta">
+        <span>${ingredients.length} ingredients</span>
+        ${m.strTags ? `<span>${m.strTags.split(',').join(' · ')}</span>` : ''}
+      </div>
+      <h4>Ingredients</h4>
+      <ul class="ingredient-list">
+        ${ingredients.map(i => `<li>${i}</li>`).join('')}
+      </ul>
+      <h4>Instructions</h4>
+      <div class="instructions">${m.strInstructions}</div>
+    </div>
+  `;
+  overlay.classList.add('open');
+  document.getElementById('closeBtn').onclick = () => overlay.classList.remove('open');
+}
+
+overlay.addEventListener('click', e => {
+  if(e.target === overlay) overlay.classList.remove('open');
+});
+
+grid.addEventListener('click', e => {
+  const favBtn = e.target.closest('[data-fav]');
+  if(favBtn){
+    const id = favBtn.dataset.fav;
+    if(favorites[id]){ delete favorites[id]; favBtn.classList.remove('active'); }
+    else { favorites[id] = true; favBtn.classList.add('active'); }
+    saveFavs();
+    return;
+  }
+  const card = e.target.closest('.card');
+  if(card) openDetail(card.dataset.id);
+});
+
+document.getElementById('searchBtn').onclick = () => {
+  const q = document.getElementById('searchInput').value.trim();
+  if(q) searchByName(q);
+};
+document.getElementById('searchInput').addEventListener('keydown', e => {
+  if(e.key === 'Enter') document.getElementById('searchBtn').click();
+});
+
+document.getElementById('filterRow').addEventListener('click', e => {
+  const chip = e.target.closest('.chip');
+  if(!chip) return;
+  document.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
+  chip.classList.add('active');
+  if(chip.dataset.area){ filterByArea(chip.dataset.area); return; }
+  const cat = chip.dataset.cat;
+  if(cat === 'favorites') showFavorites();
+  else filterByCategory(cat);
+});
+
+document.getElementById('surpriseBtn').onclick = surpriseMe;
+</script>
+
+</body>
+</html>
