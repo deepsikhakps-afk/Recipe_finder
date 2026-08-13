@@ -33,7 +33,7 @@ A modern and responsive Recipe Finder web application that helps users discover 
 Recipe_Finder/
 │── index.html also incude css
 │── README.md
-│── screenshot.png      (Optional)
+│── screenshot.png      
 ```
 
 ---
