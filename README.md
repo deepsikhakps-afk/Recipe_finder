@@ -40,7 +40,6 @@ Recipe_Finder/
 
 ## 📸 Screenshot
 
-Add a screenshot of your project.
 
 ```
 ![Recipe Finder Screenshot](screenshot.png)
