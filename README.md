@@ -39,6 +39,7 @@ Recipe_Finder/
 ---
 
 ## 📸 Screenshot
+![alt text](image.png)
 
 
 ```
